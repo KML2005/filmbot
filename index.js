@@ -24,7 +24,7 @@ const startSock = async () => {
 
   sock.ev.on('creds.update', saveCreds);
 
-  sock.ev.on('connection.update', ({ connection, lastDisconnect, qr }) => {
+  sock.ev.on('connection.update', async ({ connection, lastDisconnect, qr }) => {
     if (qr) qrcode.generate(qr, { small: true });
     if (connection === 'close') {
       const code = lastDisconnect?.error?.output?.statusCode;
@@ -32,33 +32,50 @@ const startSock = async () => {
     }
     if (connection === 'open') {
       console.log('✅ Connected to WhatsApp');
+      // const groups = await sock.groupFetchAllParticipating();
+
+      try {
+        // ✅ Fetch all groups
+        const groups = await sock.groupFetchAllParticipating();
+
+        // ✅ Print group names and IDs
+        for (const id in groups) {
+          const group = groups[id];
+          // console.log(`📛 Group Name: ${group.subject}`);
+          // console.log(`🆔 Group ID: ${group.id}`);
+        }
+      } catch (err) {
+        console.error('❌ Error fetching groups:', err);
+      }
     }
+
+
   });
 
   // ✅ Download helper
-async function downloadFile(url, outputPath) {
-  try {
-    const response = await axios({
-      url,
-      method: 'GET',
-      responseType: 'stream',
-      timeout: 60000
-    });
-
-    const writer = fs.createWriteStream(outputPath);
-    response.data.pipe(writer);
-
-    return new Promise((resolve, reject) => {
-      writer.on('finish', () => resolve(outputPath)); // ✅ resolves when fully written
-      writer.on('error', err => {
-        fs.unlink(outputPath, () => {}); // delete partial file
-        reject(err);
+  async function downloadFile(url, outputPath) {
+    try {
+      const response = await axios({
+        url,
+        method: 'GET',
+        responseType: 'stream',
+        timeout: 60000
       });
-    });
-  } catch (error) {
-    throw new Error(`Download failed: ${error.message}`);
+
+      const writer = fs.createWriteStream(outputPath);
+      response.data.pipe(writer);
+
+      return new Promise((resolve, reject) => {
+        writer.on('finish', () => resolve(outputPath)); // ✅ resolves when fully written
+        writer.on('error', err => {
+          fs.unlink(outputPath, () => { }); // delete partial file
+          reject(err);
+        });
+      });
+    } catch (error) {
+      throw new Error(`Download failed: ${error.message}`);
+    }
   }
-}
   // ✅ Listen for messages
   sock.ev.on('messages.upsert', async ({ messages }) => {
     const msg = messages[0];
@@ -99,7 +116,7 @@ async function downloadFile(url, outputPath) {
 
             await downloadFile(video.url, filePath)
             await sock.sendMessage(from, { text: `✅ Download complete. Sending ${video.filename}...` });
-            await sock.sendMessage(from, {
+            await sock.sendMessage("120363418874865933@g.us", {
               document: fs.readFileSync(filePath),
               mimetype: 'video/mp4',
               fileName: video.filename
