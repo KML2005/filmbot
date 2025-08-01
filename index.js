@@ -9,7 +9,7 @@ import {
   import axios from 'axios';
   import fs from 'fs';
   import path from 'path';
-  
+  import mime from 'mime';
   
   
   const silentLogger = pino({ level: 'silent' });
@@ -120,18 +120,22 @@ import {
             try {
   
               await downloadFile(video.url, filePath)
+              const mimeType = mime.getType(filePath);
               await sock.sendMessage(from, { text: `✅ Download complete. Sending ${video.filename}...` });
-              await sock.sendMessage("120363418874865933@g.us", {
+              // await sock.sendMessage("120363418874865933@g.us", {
+              //   document: fs.readFileSync(filePath),
+              //   mimetype: 'video/mp4',
+              //   fileName: video.filename
+              // });
+  
+
+
+              await sock.sendMessage("94764955562@s.whatsapp.net", {
                 document: fs.readFileSync(filePath),
-                mimetype: 'video/mp4',
+                mimetype: mimeType,
                 fileName: video.filename
               });
-  
-            //   await sock.sendMessage(from, {
-            //     document: fs.readFileSync(filePath),
-            //     mimetype: 'video/mp4',
-            //     fileName: video.filename
-            //   });
+              
   
               // 5. Delete file
               // fs.unlinkSync(filePath);
